@@ -100,8 +100,8 @@ def scheduler(client):
     print("Starting Job Scheduler")
     scheduler = AsyncIOScheduler()
     scheduler.configure(timezone=tz)
-    scheduler.add_job(open_channel, trigger='cron', args=(client,), hour=hour_start, id='id_open_channel')
-    scheduler.add_job(close_channel, trigger='cron', args=(client,), hour=hour_end, id='id_close_channel')
+    scheduler.add_job(open_channel, trigger='cron', args=(client,), hour=hour_start, id='id_open_channel', misfire_grace_time=300, coalesce=True)
+    scheduler.add_job(close_channel, trigger='cron', args=(client,), hour=hour_end, id='id_close_channel', misfire_grace_time=300, coalesce=True)
     scheduler.start()
 
 def main():
