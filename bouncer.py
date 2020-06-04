@@ -13,13 +13,18 @@ afterhours_end_hour = 6
 tz = timezone('America/Los_Angeles')
 
 class Bouncer(discord.Client):
+
+
     async def on_ready(self):
         print('Logged on as', self.user)
         print('Name:', self.user.name)
         print('ID:', self.user.id)
+        
+        self.afterhoursEnabled = False
 
         self.afterhoursChannels = {}
         self.guildEveryoneRoles = {}
+        self.haveWinner = {}
 
         self.loadGuildEveryoneRoles()
         self.loadAfterhoursChannels()
@@ -42,12 +47,15 @@ class Bouncer(discord.Client):
                 self.afterhoursChannels[guild] = c
 
     async def setAfterhoursEnabled(self):
+        self.afterhoursEnabled = True
         for guild, channel in self.afterhoursChannels.items():
+            self.haveWinner[guild] = False
             role = self.guildEveryoneRoles.get(guild, None)
             if role != None:
                 await self.setWritePermission(channel, role, True)
 
     async def setAfterhoursDisabled(self):
+        self.afterhoursEnabled = False
         for guild, channel in self.afterhoursChannels.items():
             role = self.guildEveryoneRoles.get(guild, None)
             if role != None:
@@ -65,6 +73,7 @@ class Bouncer(discord.Client):
 
     def loadAfterhoursChannels(self):
         for g in self.guilds:
+            self.haveWinner[g] = False
             for c in g.text_channels:
                 if c.name == '🌙afterhours':
                     self.afterhoursChannels[g] = c
@@ -76,6 +85,17 @@ class Bouncer(discord.Client):
             self.guildEveryoneRoles[g] = g.default_role
 
         print(self.guildEveryoneRoles)
+
+    async def on_message(self, message):
+        if message.author == self.user:
+            return
+        if message.channel == self.afterhoursChannels[message.guild]:
+            if ":WHO_UP:" in message.content:
+                author = message.author
+                if self.haveWinner[message.guild] == False:
+                    self.haveWinner[message.guild] = True
+                    await message.channel.send(content='<@%s> is the first to the afterhours!' % author.id)
+
 
 async def open_channel(client):
     print("Opening Afterhours Channel")
