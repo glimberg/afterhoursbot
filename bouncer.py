@@ -8,18 +8,39 @@ import threading
 import asyncio
 import os
 
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import sessionmaker
+
 afterhours_start_hour = 23
 afterhours_end_hour = 6
 tz = timezone('America/Los_Angeles')
 
+sqlite_path = os.getenv("SQLITE_PATH")
+if sqlite_path == None:
+    sqlite_path = 'sqlite:///:memory:'
+
+engine = create_engine(sqlite_path, echo=True)
+
+Base = declarative_base()
+
+class WHOUP(Base):
+    __tablename__ = 'who_up'
+    user = Column(Integer, primary_key=True)
+    nick = Column(String)
+    guild = Column(Integer)
+    first_count = Column(Integer, default=0)
+
+Base.metadata.create_all(engine)
+Session = sessionmaker()
+Session.configure(bind=engine)
+
 class Bouncer(discord.Client):
-
-
     async def on_ready(self):
         print('Logged on as', self.user)
         print('Name:', self.user.name)
         print('ID:', self.user.id)
-        
+    
         self.afterhoursEnabled = False
 
         self.afterhoursChannels = {}
@@ -94,7 +115,31 @@ class Bouncer(discord.Client):
                 author = message.author
                 if self.haveWinner[message.guild] == False:
                     self.haveWinner[message.guild] = True
-                    await message.channel.send(content='<@%s> is the first to the afterhours!' % author.id)
+                    await message.channel.send(content='''<@%s> is the first to the afterhours!''' % author.id)
+                    print(author.name)
+                    self.set_winner(author.id, message.guild.id, author.name)
+            elif message.content.startswith('!whoup'):
+                msg = "WHOUP? Top 5\n"
+                s = Session()
+                count = 0
+                for user in s.query(WHOUP).order_by(WHOUP.first_count)[0:5]:
+                    count += 1
+                    msg += "%d. %s: %d\n" % (count, user.nick, user.first_count)
+                await message.channel.send(content=msg)
+
+    def set_winner(self, user_id, guild_id, nickname):
+        global Session
+        s = Session()
+        u = s.query(WHOUP).filter(WHOUP.user == user_id, WHOUP.guild == guild_id).first()
+        if u == None:
+            u = WHOUP(user=user_id, guild=guild_id, nick=nickname, first_count=1)
+            s.add(u)
+            s.commit()
+        else:
+            u.first_count += 1
+            if u.nick != nickname:
+                u.nick = nickname
+            s.commit()
 
 
 async def open_channel(client):
