@@ -129,17 +129,21 @@ class Bouncer(discord.Client):
                 msg = "__**WHO UP? Top 5**__\n\n"
                 s = Session()
                 count = 0
-                for user in s.query(WHOUP).order_by(desc(WHOUP.first_count))[0:5]:
+                for user in s.query(WHOUP).filter(WHOUP.first_count > 0).order_by(desc(WHOUP.first_count))[0:5]:
                     count += 1
                     msg += "%d. %s: %d\n" % (count, user.nick, user.first_count)
+                else:
+                    msg += "Nobody yet!"
                 await message.channel.send(content=msg)
             elif message.content == '!whouplast':
                 msg = "__**Last To Leave Top 5**__\n\n"
                 s = Session()
                 count = 0
-                for user in s.query(WHOUP).order_by(desc(WHOUP.last_count))[0:5]:
+                for user in s.query(WHOUP).filter(WHOUP.last_count > 0).order_by(desc(WHOUP.last_count))[0:5]:
                     count += 1
-                    msg += "%d. %s: %d\n" %(count, user.inc, user.last_count)
+                    msg += "%d. %s: %d\n" %(count, user.nick, user.last_count)
+                else:
+                    msg += "Nobody yet!"
                 await message.channel.send(content=msg)
 
     def set_winner(self, user_id, guild_id, nickname):
