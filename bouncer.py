@@ -132,7 +132,7 @@ class Bouncer(discord.Client):
                 for user in s.query(WHOUP).filter(WHOUP.first_count > 0).order_by(desc(WHOUP.first_count))[0:5]:
                     count += 1
                     msg += "%d. %s: %d\n" % (count, user.nick, user.first_count)
-                else:
+                if count == 0:
                     msg += "Nobody yet!"
                 await message.channel.send(content=msg)
             elif message.content == '!whouplast':
@@ -142,7 +142,7 @@ class Bouncer(discord.Client):
                 for user in s.query(WHOUP).filter(WHOUP.last_count > 0).order_by(desc(WHOUP.last_count))[0:5]:
                     count += 1
                     msg += "%d. %s: %d\n" %(count, user.nick, user.last_count)
-                else:
+                if count == 0:
                     msg += "Nobody yet!"
                 await message.channel.send(content=msg)
 
