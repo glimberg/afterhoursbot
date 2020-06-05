@@ -31,6 +31,7 @@ class WHOUP(Base):
     guild = Column(Integer)
     first_count = Column(Integer, default=0)
     last_count = Column(Integer, default=0)
+    total_count = Column(Integer, default=0)
 
 Base.metadata.create_all(engine)
 Session = sessionmaker()
