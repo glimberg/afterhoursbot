@@ -126,8 +126,18 @@ class Bouncer(discord.Client):
                     await message.channel.send(content='''<@%s> is the first to the afterhours!''' % author.id)
                     print(author.name)
                     self.set_winner(author.id, message.guild.id, author.name)
+                whoupCount = message.content.count(':WHO_UP')
+                self.inc_whoup(author.id, message.guild.id, author.name, whoupCount)
             elif message.content == '!whoup':
                 msg = "__**WHO UP? Top 5**__\n\n"
+                s = Session()
+                count = 0
+                for user in s.query(WHOUP).filter(WHOUP.total_count > 0).order_by(desc(WHOUP.total_count))[0:5]:
+                    count += 1
+                    msg += "%d. %s: %d\n" % (count, user.nick, user.total_count)
+                await message.channel.send(content=msg)
+            elif message.content == '!whoupfirst':
+                msg = "__**First WHO UP? Top 5**__\n\n"
                 s = Session()
                 count = 0
                 for user in s.query(WHOUP).filter(WHOUP.first_count > 0).order_by(desc(WHOUP.first_count))[0:5]:
@@ -174,6 +184,21 @@ class Bouncer(discord.Client):
             if u.nick != nickname:
                 u.nick = nickname
             s.commit()
+
+    def inc_whoup(self, user_id, guild_id, nickname, amount):
+        global Session
+        s = Session()
+        u = s.query(WHOUP).filter(WHOUP.user == user_id, WHOUP.guild == guild_id).first()
+        if u == None:
+            u = WHOUP(user=user_id, guild=guild_id, nick=nickname, total_count=amount)
+            s.add(u)
+            s.commit()
+        else:
+            u.total_count += amount
+            if u.nick != nickname:
+                u.nick = nickname
+            s.commit()
+
 
 async def open_channel(client):
     print("Opening Afterhours Channel")
