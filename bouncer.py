@@ -20,7 +20,7 @@ sqlite_path = os.getenv("SQLITE_PATH")
 if sqlite_path == None:
     sqlite_path = 'sqlite:///:memory:'
 
-engine = create_engine(sqlite_path, echo=False)
+engine = create_engine(sqlite_path, echo=True)
 
 Base = declarative_base()
 
@@ -30,6 +30,7 @@ class WHOUP(Base):
     nick = Column(String)
     guild = Column(Integer)
     first_count = Column(Integer, default=0)
+    last_count = Column(Integer, default=0)
 
 Base.metadata.create_all(engine)
 Session = sessionmaker()
@@ -46,6 +47,7 @@ class Bouncer(discord.Client):
         self.afterhoursChannels = {}
         self.guildEveryoneRoles = {}
         self.haveWinner = {}
+        self.lastWhoUp = {}
 
         self.loadGuildEveryoneRoles()
         self.loadAfterhoursChannels()
@@ -81,6 +83,10 @@ class Bouncer(discord.Client):
             role = self.guildEveryoneRoles.get(guild, None)
             if role != None:
                 await self.setWritePermission(channel, role, False)
+            if guild in self.lastWhoUp:
+                last_up = self.lastWhoUp[guild]
+                if last_up != None:
+                    self.set_last(last_up.id, guild.id, last_up.name)
 
     async def setWritePermission(self, channel, everyoneRole, writeMessages):
         overwrite = discord.PermissionOverwrite()
@@ -113,18 +119,27 @@ class Bouncer(discord.Client):
         if message.channel == self.afterhoursChannels[message.guild]:
             if ":WHO_UP:" in message.content:
                 author = message.author
+                self.lastWhoUp[message.guild] = author
                 if self.haveWinner[message.guild] == False:
                     self.haveWinner[message.guild] = True
                     await message.channel.send(content='''<@%s> is the first to the afterhours!''' % author.id)
                     print(author.name)
                     self.set_winner(author.id, message.guild.id, author.name)
-            elif message.content.startswith('!whoup'):
+            elif message.content == '!whoup':
                 msg = "__**WHO UP? Top 5**__\n\n"
                 s = Session()
                 count = 0
                 for user in s.query(WHOUP).order_by(desc(WHOUP.first_count))[0:5]:
                     count += 1
                     msg += "%d. %s: %d\n" % (count, user.nick, user.first_count)
+                await message.channel.send(content=msg)
+            elif message.content == '!whouplast':
+                msg = "__**Last To Leave Top 5**__\n\n"
+                s = Session()
+                count = 0
+                for user in s.query(WHOUP).order_by(desc(WHOUP.last_count))[0:5]:
+                    count += 1
+                    msg += "%d. %s: %d\n" %(count, user.inc, user.last_count)
                 await message.channel.send(content=msg)
 
     def set_winner(self, user_id, guild_id, nickname):
@@ -141,6 +156,19 @@ class Bouncer(discord.Client):
                 u.nick = nickname
             s.commit()
 
+    def set_last(self, user_id, guild_id, nickname):
+        global Session
+        s = Session()
+        u = s.query(WHOUP).filter(WHOUP.user == user_id, WHOUP.guild == guild_id).first()
+        if u == None:
+            u = WHOUP(user=user_id, guild=guild_id, nick=nickname, last_count=1)
+            s.add(u)
+            s.commit()
+        else:
+            u.last_count += 1
+            if u.nick != nickname:
+                u.nick = nickname
+            s.commit()
 
 async def open_channel(client):
     print("Opening Afterhours Channel")
