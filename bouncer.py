@@ -9,7 +9,7 @@ import asyncio
 import os
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy import Column, Integer, String, create_engine, desc
 from sqlalchemy.orm import sessionmaker
 
 afterhours_start_hour = 23
@@ -20,7 +20,7 @@ sqlite_path = os.getenv("SQLITE_PATH")
 if sqlite_path == None:
     sqlite_path = 'sqlite:///:memory:'
 
-engine = create_engine(sqlite_path, echo=True)
+engine = create_engine(sqlite_path, echo=False)
 
 Base = declarative_base()
 
@@ -119,10 +119,10 @@ class Bouncer(discord.Client):
                     print(author.name)
                     self.set_winner(author.id, message.guild.id, author.name)
             elif message.content.startswith('!whoup'):
-                msg = "WHOUP? Top 5\n"
+                msg = "__**WHO UP? Top 5**__\n\n"
                 s = Session()
                 count = 0
-                for user in s.query(WHOUP).order_by(WHOUP.first_count)[0:5]:
+                for user in s.query(WHOUP).order_by(desc(WHOUP.first_count))[0:5]:
                     count += 1
                     msg += "%d. %s: %d\n" % (count, user.nick, user.first_count)
                 await message.channel.send(content=msg)
