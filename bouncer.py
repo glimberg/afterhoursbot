@@ -88,6 +88,7 @@ class Bouncer(discord.Client):
                 last_up = self.lastWhoUp[guild]
                 if last_up != None:
                     self.set_last(last_up.id, guild.id, last_up.name)
+        self.lastWhoUp = {}
 
     async def setWritePermission(self, channel, everyoneRole, writeMessages):
         overwrite = discord.PermissionOverwrite()
@@ -117,6 +118,12 @@ class Bouncer(discord.Client):
     async def on_message(self, message):
         if message.author == self.user:
             return
+        
+        now_utc = datetime.now(timezone('UTC'))
+        now_la = now_utc.astimezone(tz)
+        if now_la.hour >= afterhours_end_hour and now_la.hour < afterhours_start_hour:
+            return
+
         if message.channel == self.afterhoursChannels[message.guild]:
             if ":WHO_UP:" in message.content:
                 author = message.author
