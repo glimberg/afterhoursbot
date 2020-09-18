@@ -163,6 +163,20 @@ class Bouncer(discord.Client):
                 if count == 0:
                     msg += "Nobody yet!"
                 await message.channel.send(content=msg)
+            elif message.content == '!whoupme':
+                author = message.author
+                msg = "__**WHO UP! %s**__\n\n" %(author.name)
+                s = Session()
+                count = 0
+                for user in s.query(WHOUP).filter(WHOUP.user == author.id)[0:1]:
+                    count += 1
+                    msg += "First: %d\n" %(user.first_count)
+                    msg += "Last: %d\n" %(user.last_count)
+                    msg += "Total: %d\n" %(user.total_count)
+                if count == 0:
+                    msg += "No WHO UP yet!"
+                await message.channel.send(content=msg)
+
 
     def set_winner(self, user_id, guild_id, nickname):
         global Session
