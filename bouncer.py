@@ -210,7 +210,14 @@ class Bouncer(discord.Client):
 async def open_channel(client):
     print("Opening Afterhours Channel")
     await client.setAfterhoursEnabled()
-    await client.sendMessageToAfterhours("@everyone 🌙afterhours **IS NOW OPEN**")
+    now = datetime.now(timezone('UTC')).astimezone(tz)
+
+    if now.month == 11 and now.day == 13:
+        await client.sendMessageToAfterhours("🌙afterhours **IS NOW OPEN**!!  Come wish <@694128830692196363> a **HAPPY BIRTHDAY!!!!**")
+    elif now.month == 1 and now.day == 8 and now.year == 2021:
+        await client.sendMessageToAfterhours("🌙afterhours **IS NOW OPEN**\n\nAlso: <@694128830692196363>'s album is one of the most ambitious, maybe even one of the best electronic albums of all time...\n\nI know it sounds crazy but I just can’t imagine anybody else taking you on a journey quite like this, or even trying")
+    else:
+        await client.sendMessageToAfterhours("🌙afterhours **IS NOW OPEN**")
 
 async def close_channel(client):
     await asyncio.sleep(30)
